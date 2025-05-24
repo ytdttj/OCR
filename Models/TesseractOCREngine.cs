@@ -6,32 +6,48 @@ using System.Linq; // For Select
 using System.Reflection;
 using System.Threading.Tasks;
 using Tesseract; // Namespace from the Tesseract NuGet package
+using OCR.Models;
+using OCR.Services;
 
 namespace OCR.Models
 {
     public class TesseractOCREngine : IOCREngine, IDisposable
     {
         private TesseractEngine _engine;
+        private readonly AppSettings _settings;
         private string _currentLanguage;
-        private readonly string _tessDataPath;
+        private bool _disposed = false;
+        private readonly ResourceExtractionService _resourceService;
 
         public string EngineName => "Tesseract OCR";
         public string CurrentLanguage => _currentLanguage;
 
-        public TesseractOCREngine(string language = "eng") // language参数来自AppSettings.TesseractLanguage
+        public TesseractOCREngine(string language, AppSettings? settings = null)
         {
-            // 确定tessdata路径
-            // 假设 'tessdata' 文件夹与可执行文件在同一目录下
-            string exePath = Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location);
-            _tessDataPath = Path.Combine(exePath ?? Environment.CurrentDirectory, "tessdata");
-
-            if (!Directory.Exists(_tessDataPath))
-            {
-                throw new DirectoryNotFoundException($"Tesseract语言数据文件夹未找到: '{_tessDataPath}'. " +
-                                                     "请确保 'tessdata' 文件夹及其内容（例如 'eng.traineddata'）已复制到程序输出目录。");
-            }
+            _settings = settings ?? AppSettings.Load();
+            _currentLanguage = ConvertLanguageCode(language ?? "en");
+            _resourceService = new ResourceExtractionService();
             
-            SetLanguage(language); // 初始化时设置语言并创建引擎
+            // 初始化时设置语言并创建引擎
+            SetLanguage(_currentLanguage);
+        }
+
+        private string GetTessDataPath()
+        {
+            // 使用ResourceExtractionService获取用户数据目录中的tessdata路径
+            return _resourceService.GetTesseractDataPath();
+        }
+
+        private string ConvertLanguageCode(string language)
+        {
+            // 将标准语言代码转换为Tesseract语言代码
+            return language?.ToLower() switch
+            {
+                "ch" or "chinese" or "zh" => "chi_sim", // 简体中文
+                "en" or "english" => "eng",             // 英文
+                "jp" or "japanese" or "ja" => "jpn",    // 日文
+                _ => "eng" // 默认为英文
+            };
         }
 
         public async Task<string> RecognizeTextAsync(Bitmap image)
@@ -77,10 +93,10 @@ namespace OCR.Models
                 throw new ArgumentException("Tesseract语言代码不能为空。", nameof(languageCode));
 
             // 检查语言文件是否存在
-            string targetLangFile = Path.Combine(_tessDataPath, $"{languageCode}.traineddata");
+            string targetLangFile = Path.Combine(GetTessDataPath(), $"{languageCode}.traineddata");
             if (!File.Exists(targetLangFile))
             {
-                throw new FileNotFoundException($"Tesseract语言文件 '{languageCode}.traineddata' 未在 '{_tessDataPath}' 中找到。无法设置语言。", targetLangFile);
+                throw new FileNotFoundException($"Tesseract语言文件 '{languageCode}.traineddata' 未在 '{GetTessDataPath()}' 中找到。无法设置语言。", targetLangFile);
             }
 
             if (_currentLanguage == languageCode && _engine != null)
@@ -97,7 +113,7 @@ namespace OCR.Models
                 // TesseractEngine 的构造函数可以接受多种参数
                 // EngineMode.Default 通常是 TesseractOnly 或 LstmOnly，取决于编译选项和版本
                 // EngineMode.TesseractAndLstm 通常更慢但可能更准确 (在5.x中，Default可能等同于LstmOnly)
-                _engine = new TesseractEngine(_tessDataPath, languageCode, EngineMode.Default);
+                _engine = new TesseractEngine(GetTessDataPath(), languageCode, EngineMode.Default);
                 _currentLanguage = languageCode;
             }
             catch (Exception ex)
@@ -110,11 +126,11 @@ namespace OCR.Models
 
         public IEnumerable<string> GetSupportedLanguages()
         {
-            if (Directory.Exists(_tessDataPath))
+            if (Directory.Exists(GetTessDataPath()))
             {
                 try
                 {
-                    return Directory.EnumerateFiles(_tessDataPath, "*.traineddata")
+                    return Directory.EnumerateFiles(GetTessDataPath(), "*.traineddata")
                                     .Select(filePath => Path.GetFileNameWithoutExtension(filePath))
                                     .Where(lang => !string.IsNullOrEmpty(lang)) // 过滤掉可能的空文件名
                                     .ToList(); //ToList确保立即执行

@@ -7,6 +7,7 @@ using System.Diagnostics;
 using System.Drawing;
 using System.Windows;
 using System.Windows.Input;
+using System.Threading.Tasks;
 
 namespace OCR
 {
@@ -19,12 +20,26 @@ namespace OCR
         private readonly OCRService _ocrService;
         private readonly HotkeyService _hotkeyService;
         private readonly ClipboardService _clipboardService;
+        private readonly ResourceExtractionService _resourceExtractionService;
         private AppSettings _settings; // Made non-readonly to allow refresh
         private bool _isExplicitlyClosed = false;
 
         public MainWindow()
         {
             InitializeComponent();
+
+            // Initialize resource extraction service first
+            _resourceExtractionService = new ResourceExtractionService();
+            
+            // Extract resources if needed (first run or version update)
+            Task.Run(async () =>
+            {
+                bool extracted = await _resourceExtractionService.EnsureResourcesExtracted();
+                if (extracted)
+                {
+                    Console.WriteLine("资源提取完成");
+                }
+            });
 
             // Load settings first
             LoadAndApplySettings();

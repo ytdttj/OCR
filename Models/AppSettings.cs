@@ -52,12 +52,27 @@ namespace OCR.Models
         public string TesseractLanguage { get; set; } = "eng";
 
         // PaddleOCR相关设置
-        public string PaddleOcrModelPath { get; set; } = "./Models/PaddleOCR/";
+        public string PaddleOcrModelPath { get; set; } = "";  // 将在GetPaddleOcrModelPath方法中动态获取
         public string PaddleOcrDevice { get; set; } = "CPU";
         public string PaddleOcrLanguage { get; set; } = "ch";
         public int PaddleOcrMaxSideLen { get; set; } = 960;
         public bool PaddleOcrUseGpu { get; set; } = false;
         public int PaddleOcrGpuMemory { get; set; } = 500;
+
+        /// <summary>
+        /// 获取当前PaddleOCR模型路径，如果未设置则返回用户目录中的默认路径
+        /// </summary>
+        public string GetPaddleOcrModelPath()
+        {
+            if (!string.IsNullOrEmpty(PaddleOcrModelPath) && Directory.Exists(PaddleOcrModelPath))
+            {
+                return PaddleOcrModelPath;
+            }
+
+            // 使用ResourceExtractionService获取用户目录中的模型路径
+            var resourceService = new OCR.Services.ResourceExtractionService();
+            return resourceService.GetPaddleOCRModelPath(PaddleOcrLanguage);
+        }
 
         public void Save()
         {

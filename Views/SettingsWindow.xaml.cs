@@ -88,8 +88,9 @@ namespace OCR.Views
             _tesseractLanguages.Clear();
             try
             {
-                string baseDirectory = Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location) ?? Environment.CurrentDirectory;
-                string tessdataDir = Path.Combine(baseDirectory, "tessdata");
+                // 使用ResourceExtractionService获取用户目录中的tessdata路径
+                var resourceService = new OCR.Services.ResourceExtractionService();
+                string tessdataDir = resourceService.GetTesseractDataPath();
 
                 if (Directory.Exists(tessdataDir))
                 {
@@ -106,6 +107,30 @@ namespace OCR.Views
                             case "jpn": displayName = "日本語 (Japanese)"; break;
                         }
                         _tesseractLanguages.Add(new LanguageSelectionItem { Code = langCode, DisplayName = displayName });
+                    }
+                }
+                else
+                {
+                    // 如果用户目录不存在，尝试从编译目录读取（开发环境兼容）
+                    string baseDirectory = Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location) ?? Environment.CurrentDirectory;
+                    string fallbackTessdataDir = Path.Combine(baseDirectory, "tessdata");
+                    
+                    if (Directory.Exists(fallbackTessdataDir))
+                    {
+                        var trainedDataFiles = Directory.GetFiles(fallbackTessdataDir, "*.traineddata");
+                        foreach (var file in trainedDataFiles)
+                        {
+                            string langCode = Path.GetFileNameWithoutExtension(file);
+                            string displayName = langCode; 
+                            switch (langCode.ToLower())
+                            {
+                                case "chi_sim": displayName = "简体中文 (Simplified Chinese)"; break;
+                                case "chi_tra": displayName = "繁體中文 (Traditional Chinese)"; break;
+                                case "eng": displayName = "English"; break;
+                                case "jpn": displayName = "日本語 (Japanese)"; break;
+                            }
+                            _tesseractLanguages.Add(new LanguageSelectionItem { Code = langCode, DisplayName = displayName });
+                        }
                     }
                 }
             }
@@ -185,7 +210,10 @@ namespace OCR.Views
                 var paddleLangItem = _paddleOcrLanguages.FirstOrDefault(l => l.Code.Equals(_settings.PaddleOcrLanguage, StringComparison.OrdinalIgnoreCase));
                 cmbPaddleOcrLanguages.SelectedItem = paddleLangItem ?? _paddleOcrLanguages.FirstOrDefault();
                 
-                txtPaddleModelPath.Text = _settings.PaddleOcrModelPath;
+                var resourceService = new OCR.Services.ResourceExtractionService();
+                string modelPath = resourceService.GetPaddleOCRModelPath(_settings.PaddleOcrLanguage);
+                txtPaddleModelPath.Text = modelPath;
+                
                 chkPaddleUseGpu.IsChecked = _settings.PaddleOcrUseGpu;
                 txtPaddleMaxSideLen.Text = _settings.PaddleOcrMaxSideLen.ToString();
             }
@@ -354,9 +382,9 @@ namespace OCR.Views
         {
             if (cmbPaddleOcrLanguages.SelectedItem is LanguageSelectionItem selectedLang)
             {
-                // 根据选择的语言自动设置模型路径
-                string baseDirectory = Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location) ?? Environment.CurrentDirectory;
-                string modelPath = Path.Combine(baseDirectory, "Models", "PaddleOCR", selectedLang.Code);
+                // 使用ResourceExtractionService获取正确的用户目录路径
+                var resourceService = new OCR.Services.ResourceExtractionService();
+                string modelPath = resourceService.GetPaddleOCRModelPath(selectedLang.Code);
                 
                 // 检查该语言的模型文件夹是否存在
                 if (Directory.Exists(modelPath))
@@ -366,7 +394,7 @@ namespace OCR.Views
                 else
                 {
                     // 如果特定语言文件夹不存在，使用通用路径
-                    string generalPath = Path.Combine(baseDirectory, "Models", "PaddleOCR");
+                    string generalPath = resourceService.GetUserModelPath("Models/PaddleOCR");
                     txtPaddleModelPath.Text = generalPath;
                 }
             }

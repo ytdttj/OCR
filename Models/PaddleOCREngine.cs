@@ -1,4 +1,5 @@
 using OCR.Models;
+using OCR.Services;
 using PaddleOCRSharp;
 using System;
 using System.Collections.Generic;
@@ -15,7 +16,7 @@ namespace OCR.Models
         private string _currentLanguage;
         private bool _disposed = false;
         private PaddleOCRSharp.PaddleOCREngine _paddleEngine;
-        private readonly string _modelBasePath;
+        private readonly ResourceExtractionService _resourceService;
 
         public string EngineName => "PaddleOCR";
         public string CurrentLanguage => _currentLanguage;
@@ -24,49 +25,52 @@ namespace OCR.Models
         {
             _settings = settings ?? AppSettings.Load();
             _currentLanguage = language ?? "ch";
+            _resourceService = new ResourceExtractionService();
             
-            // 获取模型文件路径
-            _modelBasePath = GetModelBasePath();
-            
-            // 初始化PaddleOCR引擎
             InitializePaddleOCR();
-        }
-
-        private string GetModelBasePath()
-        {
-            string exePath = Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location) ?? "";
-            return Path.Combine(exePath, "Models", "PaddleOCR");
         }
 
         private void InitializePaddleOCR()
         {
             try
             {
-                // 使用默认配置（内置轻量级中英文V3模型）
-                OCRModelConfig config = null;
+                // 获取用户数据目录中的模型路径
+                string modelPath = _settings.GetPaddleOcrModelPath();
                 
-                // 如果需要使用自定义模型，可以这样配置：
-                // OCRModelConfig config = new OCRModelConfig();
-                // config.det_infer = Path.Combine(_modelBasePath, "ch_PP-OCRv4_det_server_infer");
-                // config.cls_infer = Path.Combine(_modelBasePath, "ch_ppocr_mobile_v2.0_cls_infer");
-                // config.rec_infer = Path.Combine(_modelBasePath, "ch_PP-OCRv4_rec_server_infer");
-                // config.keys = Path.Combine(_modelBasePath, "ppocr_keys.txt");
+                // 检查模型文件是否存在
+                if (!Directory.Exists(modelPath))
+                {
+                    throw new DirectoryNotFoundException($"PaddleOCR模型目录不存在: {modelPath}");
+                }
 
-                // OCR参数配置
-                OCRParameter ocrParameter = new OCRParameter();
-                ocrParameter.cpu_math_library_num_threads = 10;
-                ocrParameter.enable_mkldnn = true;
-                ocrParameter.cls = false;
-                ocrParameter.det = true;
-                ocrParameter.use_angle_cls = false;
-                ocrParameter.det_db_score_mode = true;
+                // 构建模型配置
+                var config = new OCRModelConfig
+                {
+                    det_infer = Path.Combine(modelPath, "det_model"),
+                    rec_infer = Path.Combine(modelPath, "rec_model"),
+                    cls_infer = Path.Combine(modelPath, "cls_model"),
+                    keys = _resourceService.GetUserModelPath(
+                        _currentLanguage == "en" 
+                            ? "Models/PaddleOCR/en_dict.txt" 
+                            : "Models/PaddleOCR/ppocr_keys_v1.txt"
+                    )
+                };
 
-                // 创建PaddleOCR引擎
-                _paddleEngine = new PaddleOCRSharp.PaddleOCREngine(config, ocrParameter);
+                // 验证必需的模型文件
+                if (!Directory.Exists(config.det_infer))
+                    throw new DirectoryNotFoundException($"检测模型目录不存在: {config.det_infer}");
+                if (!Directory.Exists(config.rec_infer))
+                    throw new DirectoryNotFoundException($"识别模型目录不存在: {config.rec_infer}");
+
+                // 初始化PaddleOCR引擎
+                _paddleEngine = new PaddleOCRSharp.PaddleOCREngine(config, new OCRParameter());
+                
+                Console.WriteLine($"PaddleOCR引擎初始化成功，语言: {_currentLanguage}，模型路径: {modelPath}");
             }
             catch (Exception ex)
             {
-                throw new InvalidOperationException($"Failed to initialize PaddleOCR engine: {ex.Message}", ex);
+                Console.WriteLine($"PaddleOCR初始化失败: {ex.Message}");
+                throw;
             }
         }
 

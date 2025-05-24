@@ -1,0 +1,73 @@
+<Window x:Class="OCR.Views.ScreenshotWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:local="clr-namespace:OCR.Views"
+        mc:Ignorable="d"
+        Title="截图" 
+        WindowStyle="None" 
+        ResizeMode="NoResize" 
+        WindowState="Normal" 
+        AllowsTransparency="True" 
+        Background="Transparent"
+        Topmost="True"
+        ShowInTaskbar="False" 
+        KeyDown="Window_KeyDown"
+        MouseDown="Window_MouseDown"
+        MouseMove="Window_MouseMove"
+        MouseUp="Window_MouseUp">
+
+    <!-- 
+        The primary content is a Canvas that will be sized in code-behind 
+        to match the screen dimensions in WPF units.
+        The overlayRectangle and other controls are children of this Canvas.
+    -->
+    <Canvas x:Name="canvasOverlay">
+        <!-- 
+            Semi-transparent background rectangle.
+            Its Width and Height are bound to the ActualWidth and ActualHeight of its parent Canvas (canvasOverlay).
+            This ensures it always covers the entire area of the canvas.
+        -->
+        <Rectangle x:Name="overlayRectangle" Fill="#7F000000" 
+                   Width="{Binding ActualWidth, RelativeSource={RelativeSource AncestorType=Canvas}}" 
+                   Height="{Binding ActualHeight, RelativeSource={RelativeSource AncestorType=Canvas}}"/>
+        
+        <!-- Selection border -->
+        <Border x:Name="borderSelection" 
+                BorderBrush="#FF3399FF"
+                BorderThickness="1" 
+                Background="#333399FF" 
+                Visibility="Collapsed">
+            <!-- Optional: Inner white border for better contrast, or remove if not needed -->
+            <!-- <Border BorderBrush="White" BorderThickness="1"/> -->
+        </Border>
+        
+        <!-- Action buttons, positioned in code-behind relative to the selection -->
+        <Button x:Name="btnCapture" 
+                Content="✓" 
+                Width="28" 
+                Height="28"
+                FontSize="14"
+                FontWeight="Bold"
+                Background="#FF007ACC"
+                Foreground="White"
+                BorderThickness="0"
+                Visibility="Collapsed"
+                Click="btnCapture_Click"
+                ToolTip="确认截图 (Enter)"/>
+        
+        <Button x:Name="btnCancel" 
+                Content="✗" 
+                Width="28" 
+                Height="28"
+                FontSize="14"
+                FontWeight="Bold"
+                Background="#FFD32F2F"
+                Foreground="White"
+                BorderThickness="0"
+                Visibility="Collapsed"
+                Click="btnCancel_Click"
+                ToolTip="取消截图 (Esc)"/>
+    </Canvas>
+</Window>

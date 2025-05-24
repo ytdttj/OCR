@@ -1,0 +1,88 @@
+<Window x:Class="OCR.Views.ResultWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:local="clr-namespace:OCR.Views"
+        mc:Ignorable="d"
+        Title="OCR识别结果" Height="550" Width="800"
+        WindowStartupLocation="CenterScreen">
+    <Grid Margin="10">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="*"/>
+            <RowDefinition Height="Auto"/>
+        </Grid.RowDefinitions>
+        
+        <!-- 主内容区域 - 左侧图片，右侧OCR结果 -->
+        <Grid Grid.Row="0">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*"/>
+                <ColumnDefinition Width="*"/>
+            </Grid.ColumnDefinitions>
+            
+            <!-- 左侧 - 图片显示区域 -->
+            <Grid Grid.Column="0" Margin="0,0,5,0">
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="*"/>
+                </Grid.RowDefinitions>
+                
+                <!-- 图片控制工具栏 -->
+                <Border Grid.Row="0" BorderBrush="LightGray" BorderThickness="0,0,0,1" Padding="5" Background="#F8F8F8">
+                    <StackPanel Orientation="Horizontal" HorizontalAlignment="Left">
+                        <Button x:Name="btnZoomOut" Click="btnZoomOut_Click" Content="缩小" Width="50" Height="25" Margin="0,0,5,0" FontSize="12"/>
+                        <Button x:Name="btnZoomIn" Click="btnZoomIn_Click" Content="放大" Width="50" Height="25" Margin="0,0,5,0" FontSize="12"/>
+                        <Separator Margin="5,0"/>
+                        <Button x:Name="btnFitToWindow" Click="btnFitToWindow_Click" Content="适配" Width="50" Height="25" Margin="0,0,5,0" FontSize="12"/>
+                        <Button x:Name="btnActualSize" Click="btnActualSize_Click" Content="原始" Width="50" Height="25" Margin="0,0,5,0" FontSize="12"/>
+                        <Separator Margin="5,0"/>
+                        <TextBlock x:Name="txtZoomLevel" Text="100%" VerticalAlignment="Center" Margin="5,0" FontSize="12" MinWidth="40"/>
+                    </StackPanel>
+                </Border>
+                
+                <!-- 图片显示区域 -->
+                <Border Grid.Row="1" BorderBrush="LightGray" BorderThickness="1" Background="White">
+                    <ScrollViewer x:Name="imgScrollViewer" 
+                                  HorizontalScrollBarVisibility="Auto" 
+                                  VerticalScrollBarVisibility="Auto"
+                                  HorizontalAlignment="Stretch"
+                                  VerticalAlignment="Stretch"
+                                  SizeChanged="imgScrollViewer_SizeChanged">
+                        <Image x:Name="imgScreenshot" 
+                               Stretch="None"
+                               HorizontalAlignment="Left"
+                               VerticalAlignment="Center"
+                               RenderTransformOrigin="0,0.5"
+                               MouseWheel="imgScreenshot_MouseWheel">
+                            <Image.RenderTransform>
+                                <ScaleTransform x:Name="imgScaleTransform" ScaleX="1" ScaleY="1"/>
+                            </Image.RenderTransform>
+                        </Image>
+                    </ScrollViewer>
+                </Border>
+            </Grid>
+            
+            <!-- 右侧 - OCR结果文本编辑区域 -->
+            <Grid Grid.Column="1" Margin="5,0,0,0">
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="*"/>
+                </Grid.RowDefinitions>
+                
+                <TextBlock Grid.Row="0" Text="OCR识别结果（可编辑）:" FontWeight="Bold" Margin="0,0,0,5"/>
+                
+                <TextBox Grid.Row="1" x:Name="txtOcrResult" 
+                         AcceptsReturn="True" 
+                         TextWrapping="Wrap" 
+                         VerticalScrollBarVisibility="Auto"
+                         FontSize="14"/>
+            </Grid>
+        </Grid>
+        
+        <!-- 底部按钮区域 -->
+        <StackPanel Grid.Row="1" Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,10,0,0">
+            <Button x:Name="btnSaveScreenshot" Click="btnSaveScreenshot_Click" Content="保存截图" Width="100" Height="30" Margin="0,0,10,0"/>
+            <Button x:Name="btnCopyText" Click="btnCopyText_Click" Content="复制文字" Width="100" Height="30"/>
+        </StackPanel>
+    </Grid>
+</Window>

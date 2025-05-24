@@ -29,7 +29,7 @@
 ### 运行步骤
 ```bash
 git clone https://github.com/ytdttj/OCR.git
-cd YTOCR
+cd OCR
 dotnet restore
 dotnet build
 dotnet run

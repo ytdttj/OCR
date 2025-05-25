@@ -37,10 +37,10 @@ namespace OCR.Models
                 // 获取用户数据目录中的模型路径
                 string modelPath = _settings.GetPaddleOcrModelPath();
                 
-                // 检查模型文件是否存在
+                // 详细检查模型文件是否存在
                 if (!Directory.Exists(modelPath))
                 {
-                    throw new DirectoryNotFoundException($"PaddleOCR模型目录不存在: {modelPath}");
+                    throw new DirectoryNotFoundException($"PaddleOCR模型目录不存在: {modelPath}。请确保程序已完成初始化。");
                 }
 
                 // 构建模型配置
@@ -58,9 +58,22 @@ namespace OCR.Models
 
                 // 验证必需的模型文件
                 if (!Directory.Exists(config.det_infer))
-                    throw new DirectoryNotFoundException($"检测模型目录不存在: {config.det_infer}");
+                    throw new DirectoryNotFoundException($"检测模型目录不存在: {config.det_infer}。请重新启动程序完成资源提取。");
                 if (!Directory.Exists(config.rec_infer))
-                    throw new DirectoryNotFoundException($"识别模型目录不存在: {config.rec_infer}");
+                    throw new DirectoryNotFoundException($"识别模型目录不存在: {config.rec_infer}。请重新启动程序完成资源提取。");
+                
+                // 验证字典文件
+                if (!File.Exists(config.keys))
+                    throw new FileNotFoundException($"字典文件不存在: {config.keys}。请重新启动程序完成资源提取。");
+
+                // 验证模型文件内容（检查是否有实际的模型文件）
+                var detModelFiles = Directory.GetFiles(config.det_infer);
+                var recModelFiles = Directory.GetFiles(config.rec_infer);
+                
+                if (detModelFiles.Length == 0)
+                    throw new InvalidOperationException($"检测模型目录为空: {config.det_infer}。请重新启动程序完成资源提取。");
+                if (recModelFiles.Length == 0)
+                    throw new InvalidOperationException($"识别模型目录为空: {config.rec_infer}。请重新启动程序完成资源提取。");
 
                 // 初始化PaddleOCR引擎
                 _paddleEngine = new PaddleOCRSharp.PaddleOCREngine(config, new OCRParameter());
@@ -69,8 +82,13 @@ namespace OCR.Models
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"PaddleOCR初始化失败: {ex.Message}");
-                throw;
+                string errorMessage = $"PaddleOCR初始化失败: {ex.Message}";
+                if (ex is DirectoryNotFoundException || ex is FileNotFoundException)
+                {
+                    errorMessage += "\n建议：请重新启动程序以完成模型文件的初始化。";
+                }
+                Console.WriteLine(errorMessage);
+                throw new InvalidOperationException(errorMessage, ex);
             }
         }
 

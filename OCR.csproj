@@ -8,7 +8,37 @@
     <UseWPF>true</UseWPF>
     <ApplicationManifest>app.manifest</ApplicationManifest>
     <PlatformTarget>x64</PlatformTarget>
+    
+    <!-- 单文件发布配置 -->
+    <PublishSingleFile>true</PublishSingleFile>
+    <IncludeNativeLibrariesForSelfExtract>true</IncludeNativeLibrariesForSelfExtract>
+    <PublishTrimmed>false</PublishTrimmed>
+    <EnableCompressionInSingleFile>true</EnableCompressionInSingleFile>
+    <DebuggerSupport>false</DebuggerSupport>
+    <EnableUnsafeBinaryFormatterSerialization>false</EnableUnsafeBinaryFormatterSerialization>
+    
+    <!-- 程序集版本信息 -->
+    <AssemblyVersion>1.2.0.0</AssemblyVersion>
+    <FileVersion>1.2.0.0</FileVersion>
+    <Version>1.2.0</Version>
+    
+    <!-- 产品信息 -->
+    <Product>YTOCR</Product>
+    <AssemblyTitle>YTOCR</AssemblyTitle>
+    <Description>支持Windows OCR、Tesseract OCR和PaddleOCR的多引擎OCR文字识别工具</Description>
+    
+    <!-- 版权和公司信息 -->
+    <Copyright>Copyright © 2025 ytdttj. All rights reserved.</Copyright>
+    <Company>ytdttj</Company>
+    <Authors>ytdttj</Authors>
+    
+    <NeutralLanguage>zh-CN</NeutralLanguage>
   </PropertyGroup>
+
+  <ItemGroup>
+    <!-- 其他元数据 -->
+    <AssemblyMetadata Include="BuildDate" Value="$([System.DateTime]::Now.ToString('yyyy-MM-dd HH:mm:ss'))" />
+  </ItemGroup>
 
   <ItemGroup>
     <None Remove="Assets\icon.ico" />

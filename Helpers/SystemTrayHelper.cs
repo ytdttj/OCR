@@ -51,9 +51,9 @@ namespace OCR.Helpers
         {
             if (_mainWindow != null)
             {
-                if (_mainWindow.WindowState == WindowState.Minimized)
+                if (_mainWindow.WindowState == System.Windows.WindowState.Minimized)
                 {
-                    _mainWindow.WindowState = WindowState.Normal;
+                    _mainWindow.WindowState = System.Windows.WindowState.Normal;
                 }
                 _mainWindow.Show();
                 _mainWindow.Activate();

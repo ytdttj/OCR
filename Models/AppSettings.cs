@@ -25,9 +25,32 @@ namespace OCR.Models
 
     public class AppSettings
     {
-        private static readonly string SettingsFilePath = Path.Combine(
-            Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location) ?? Environment.CurrentDirectory,
-            "settings.json"); // 建议使用 .json 扩展名
+        private static readonly string SettingsFilePath = GetSettingsFilePath();
+
+        /// <summary>
+        /// 获取设置文件路径，兼容单文件发布环境
+        /// </summary>
+        private static string GetSettingsFilePath()
+        {
+            // 单文件发布兼容：优先使用AppContext.BaseDirectory
+            string? assemblyLocation = Assembly.GetExecutingAssembly().Location;
+            string baseDirectory;
+            
+            if (string.IsNullOrEmpty(assemblyLocation))
+            {
+                // 单文件发布环境
+                baseDirectory = AppContext.BaseDirectory;
+                Console.WriteLine($"AppSettings: 单文件发布环境，使用BaseDirectory = {baseDirectory}");
+            }
+            else
+            {
+                // 常规发布环境
+                baseDirectory = Path.GetDirectoryName(assemblyLocation) ?? Environment.CurrentDirectory;
+                Console.WriteLine($"AppSettings: 常规发布环境，使用AssemblyLocation = {baseDirectory}");
+            }
+            
+            return Path.Combine(baseDirectory, "settings.json");
+        }
 
         // Hotkey property
         public HotkeySettings Hotkey { get; set; } = new HotkeySettings();
@@ -142,4 +165,4 @@ namespace OCR.Models
             return new AppSettings();
         }
     }
-}
+} 

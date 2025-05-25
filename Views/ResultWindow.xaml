@@ -58,8 +58,8 @@
                                 <ScaleTransform x:Name="imgScaleTransform" ScaleX="1" ScaleY="1"/>
                             </Image.RenderTransform>
                         </Image>
-                    </ScrollViewer>
-                </Border>
+                </ScrollViewer>
+            </Border>
             </Grid>
             
             <!-- 右侧 - OCR结果文本编辑区域 -->
@@ -85,4 +85,4 @@
             <Button x:Name="btnCopyText" Click="btnCopyText_Click" Content="复制文字" Width="100" Height="30"/>
         </StackPanel>
     </Grid>
-</Window>
+</Window> 

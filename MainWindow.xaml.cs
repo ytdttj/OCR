@@ -16,42 +16,128 @@ namespace OCR
     /// </summary>
     public partial class MainWindow : Window, IDisposable
     {
-        private readonly ScreenshotService _screenshotService;
-        private readonly OCRService _ocrService;
-        private readonly HotkeyService _hotkeyService;
-        private readonly ClipboardService _clipboardService;
+        private ScreenshotService _screenshotService;
+        private OCRService _ocrService;
+        private HotkeyService _hotkeyService;
+        private ClipboardService _clipboardService;
         private readonly ResourceExtractionService _resourceExtractionService;
+        private readonly SilentRestartService _silentRestartService;
         private AppSettings _settings; // Made non-readonly to allow refresh
         private bool _isExplicitlyClosed = false;
+        private readonly bool _isSilentRestart;
 
-        public MainWindow()
+        public MainWindow(SilentRestartService silentRestartService, bool isSilentRestart)
         {
             InitializeComponent();
+
+            // Store silent restart service and flag
+            _silentRestartService = silentRestartService;
+            _isSilentRestart = isSilentRestart;
 
             // Initialize resource extraction service first
             _resourceExtractionService = new ResourceExtractionService();
             
-            // Extract resources if needed (first run or version update)
-            Task.Run(async () =>
-            {
-                bool extracted = await _resourceExtractionService.EnsureResourcesExtracted();
-                if (extracted)
-                {
-                    Console.WriteLine("资源提取完成");
-                }
-            });
+            // Update UI to show initialization status
+            UpdateInitializationStatus("正在初始化...");
+            DisableFunctionalButtons();
 
+            // 如果是静默重启，跳过资源提取
+            if (_isSilentRestart)
+            {
+                Console.WriteLine("静默重启模式，跳过资源提取");
+                UpdateInitializationStatus("正在初始化OCR引擎...");
+            }
+            else
+            {
+                // 正常启动，检查并提取资源
+                UpdateInitializationStatus("正在检查和提取资源文件...");
+                
+                try
+                {
+                    bool extracted = _resourceExtractionService.EnsureResourcesExtractedSync();
+                    if (extracted)
+                    {
+                        Console.WriteLine("资源提取完成，准备进行静默重启");
+                        UpdateInitializationStatus("资源提取完成，正在重启程序...");
+                        
+                        // 执行静默重启
+                        _ = Task.Run(async () =>
+                        {
+                            await Task.Delay(1000); // 短暂延迟，让UI更新完成
+                            
+                            bool restartSuccess = await _silentRestartService.PerformSilentRestart(this);
+                            if (restartSuccess)
+                            {
+                                // 静默重启成功，当前实例将被终止
+                                Dispatcher.Invoke(() =>
+                                {
+                                    Application.Current.Shutdown();
+                                });
+                            }
+                            else
+                            {
+                                // 静默重启失败，继续当前会话
+                                Dispatcher.Invoke(() =>
+                                {
+                                    UpdateInitializationStatus("重启失败，继续当前会话...");
+                                    Console.WriteLine("静默重启失败，继续当前会话初始化");
+                                    ContinueNormalInitialization();
+                                });
+                            }
+                        });
+                        
+                        // 在静默重启期间，暂停当前初始化
+                        return;
+                    }
+                    else
+                    {
+                        UpdateInitializationStatus("资源检查完成，正在初始化OCR引擎...");
+                    }
+                }
+                catch (Exception ex)
+                {
+                    UpdateInitializationStatus($"资源提取失败: {ex.Message}");
+                    MessageBox.Show($"资源提取失败: {ex.Message}", "初始化错误", 
+                        MessageBoxButton.OK, MessageBoxImage.Error);
+                    ContinueNormalInitialization(); // 即使失败也尝试继续
+                    return;
+                }
+            }
+
+            // 继续正常初始化流程
+            ContinueNormalInitialization();
+        }
+
+        private void ContinueNormalInitialization()
+        {
             // Load settings first
             LoadAndApplySettings();
 
-            // Initialize services with proper parameters
+            // Initialize services with proper parameters - now safe to initialize OCR
             _screenshotService = new ScreenshotService();
             _clipboardService = new ClipboardService();
-            _ocrService = new OCRService(_settings, CreateOCREngineFactory());
+            
+            try
+            {
+                _ocrService = new OCRService(_settings, CreateOCREngineFactory());
+                UpdateInitializationStatus("OCR引擎初始化完成");
+            }
+            catch (Exception ex)
+            {
+                UpdateInitializationStatus($"OCR引擎初始化失败: {ex.Message}");
+                MessageBox.Show($"OCR引擎初始化失败: {ex.Message}", "初始化错误", 
+                    MessageBoxButton.OK, MessageBoxImage.Error);
+                return;
+            }
+
             _hotkeyService = new HotkeyService();
 
             // Register hotkeys from settings
             RegisterHotkeysFromSettings();
+
+            // Initialization complete - enable buttons and update status
+            EnableFunctionalButtons();
+            UpdateInitializationStatus("初始化完成，程序已就绪");
 
             this.Loaded += MainWindow_Loaded;
             this.StateChanged += MainWindow_StateChanged;
@@ -291,7 +377,7 @@ namespace OCR
         {
             if (!_isExplicitlyClosed)
             {
-                if (WindowState == WindowState.Minimized && ShowInTaskbar == false) // Was minimized to tray
+                if (WindowState == System.Windows.WindowState.Minimized && ShowInTaskbar == false) // Was minimized to tray
                 {
                     if (TaskbarIcon != null) TaskbarIcon.Visibility = Visibility.Visible;
                     // Don't show the main window itself, just the tray icon
@@ -331,12 +417,12 @@ namespace OCR
 
         private void MainWindow_StateChanged(object sender, EventArgs e)
         {
-            if (WindowState == WindowState.Minimized)
+            if (WindowState == System.Windows.WindowState.Minimized)
             {
                 this.ShowInTaskbar = false;
                 if (TaskbarIcon != null) TaskbarIcon.Visibility = Visibility.Visible;
             }
-            else if (WindowState == WindowState.Normal || WindowState == WindowState.Maximized)
+            else if (WindowState == System.Windows.WindowState.Normal || WindowState == System.Windows.WindowState.Maximized)
             {
                 this.ShowInTaskbar = true; // Ensure it's true when not minimized
                 if (TaskbarIcon != null) TaskbarIcon.Visibility = Visibility.Collapsed;
@@ -348,7 +434,7 @@ namespace OCR
             if (!_isExplicitlyClosed)
             {
                 e.Cancel = true; 
-                WindowState = WindowState.Minimized; 
+                WindowState = System.Windows.WindowState.Minimized; 
             }
             else
             {
@@ -371,7 +457,7 @@ namespace OCR
         private void ShowMainWindow()
         {
             this.Show();
-            this.WindowState = WindowState.Normal;
+            this.WindowState = System.Windows.WindowState.Normal;
             this.Activate();
             this.ShowInTaskbar = true;
             if (TaskbarIcon != null) TaskbarIcon.Visibility = Visibility.Collapsed;
@@ -397,6 +483,27 @@ namespace OCR
         {
             _hotkeyService?.Dispose();
             _ocrService?.Dispose();
+        }
+
+        // UI状态管理方法
+        private void UpdateInitializationStatus(string message)
+        {
+            if (lblStatus != null)
+            {
+                lblStatus.Text = message;
+            }
+        }
+
+        private void DisableFunctionalButtons()
+        {
+            if (btnCapture != null) btnCapture.IsEnabled = false;
+            if (btnSettings != null) btnSettings.IsEnabled = false;
+        }
+
+        private void EnableFunctionalButtons()
+        {
+            if (btnCapture != null) btnCapture.IsEnabled = true;
+            if (btnSettings != null) btnSettings.IsEnabled = true;
         }
     }
 }

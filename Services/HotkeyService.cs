@@ -14,10 +14,10 @@ namespace OCR.Services
     {
         [DllImport("user32.dll")]
         private static extern bool RegisterHotKey(IntPtr hWnd, int id, uint fsModifiers, uint vk);
-
+        
         [DllImport("user32.dll")]
         private static extern bool UnregisterHotKey(IntPtr hWnd, int id);
-
+        
         private const uint MOD_ALT_WINAPI = 0x0001;
         private const uint MOD_CONTROL_WINAPI = 0x0002;
         private const uint MOD_SHIFT_WINAPI = 0x0004;
@@ -197,4 +197,4 @@ namespace OCR.Services
             GC.SuppressFinalize(this);
         }
     }
-}
+} 

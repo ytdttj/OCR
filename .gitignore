@@ -1,4 +1,3 @@
-debug_resources.cmd
 # Prerequisites
 *.d
 
@@ -280,3 +279,82 @@ logs/
 # Temporary files
 temp/
 tmp/
+
+# ===== OCR Project Specific Ignores =====
+
+# Cursor IDE files
+.cursor/
+
+# AI协议相关文件
+final_review_gate.py
+
+# Markdown文档文件
+*.md
+
+# Test and debug files
+debug_resources.cmd
+debug_resources.ps1
+test_*.ps1
+test_*.cmd
+temp_debug.cs
+debug_resources.exe
+
+# Single file test builds
+OCR_SingleFile_*.exe
+OCR_Test*.exe
+*_Test.exe
+*_Debug.exe
+*_Final.exe
+
+# Build scripts (keep the main ones, ignore temporary)
+build-single-file.ps1
+
+# User data and runtime files (these are created at runtime)
+YTOCR/
+*.marker
+
+# Extraction logs and error files
+extraction_log.txt
+extraction_error.txt
+
+# PowerShell execution policy and module cache
+*.ps1.cache
+
+# Windows specific temp files
+*.tmp
+*.temp
+
+# IDE specific files
+*.swp
+*.swo
+*~
+
+# Package manager lock files (can be regenerated)
+packages-lock.json
+
+# JetBrains Rider
+.idea/
+*.sln.iml
+
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+
+# Linux
+*~
+
+# Windows
+Thumbs.db
+Thumbs.db:encryptable
+ehthumbs.db
+ehthumbs_vista.db
+*.stackdump
+[Dd]esktop.ini
+$RECYCLE.BIN/
+*.cab
+*.msi
+*.msix
+*.msm
+*.msp
+*.lnk
